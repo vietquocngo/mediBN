@@ -1,0 +1,37 @@
+# Import necessary libraries
+import pandas as pd
+from pgmpy.models import BayesianNetwork
+from pgmpy.estimators import HillClimbSearch, BicScore, BayesianEstimator
+from pgmpy.inference import VariableElimination
+
+# Load sample data (Alarm dataset)
+data = pd.read_csv('https://raw.githubusercontent.com/pgmpy/pgmpy/master/examples/data/alarm.csv')
+
+# Remove columns with missing values (for simplicity)
+data = data.dropna(axis=1)
+
+# Initialize HillClimbSearch object with BIC score
+hc = HillClimbSearch(data, scoring_method=BicScore(data))
+
+# Search for the best structure
+best_model = hc.estimate()
+
+# Print the learned structure (DAG)
+print("Learned structure (DAG):")
+print(best_model.edges())
+
+# Initialize BayesianNetwork model with the learned structure
+model = BayesianNetwork(best_model.edges())
+
+# Learn parameters (fit the model to data)
+model.fit(data, estimator=BayesianEstimator)
+
+# Perform inference
+inference = VariableElimination(model)
+
+# Query: P(A=0 | B=1, E=1)
+query_result = inference.query(variables=['A'], evidence={'B': 1, 'E': 1})
+
+# Print query result
+print("\nInference result:")
+print(query_result)
